@@ -5,6 +5,7 @@ export interface UpstreamKeyStore {
   mask: string
   balance: number | null
   balanceUpdated: number
+  disabled?: boolean
 }
 
 export interface UserKeyStore {

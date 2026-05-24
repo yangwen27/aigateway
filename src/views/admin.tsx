@@ -4,6 +4,7 @@ interface KeyInfo {
   id: string
   mask: string
   balance?: number | null
+  disabled?: boolean
   enabled?: boolean
 }
 
@@ -49,9 +50,13 @@ const baseStyle = `
   }
   .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
   .msg { font-size: 13px; color: var(--muted); }
-  .hidden { display: none; }
-  .refresh-btn { cursor: pointer; color: var(--muted); font-size: 13px; padding: 2px 6px; border-radius: 4px; border: none; background: none; }
-  .refresh-btn:hover { color: var(--text); background: var(--border); }
+  .hidden { display: none !important; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay:not(.hidden) { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw; }
+  .batch-bar { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+  .batch-bar.hidden { display: none !important; }
+  input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 `
 
 export const AdminPage: FC<{
@@ -78,18 +83,32 @@ export const AdminPage: FC<{
 
       {/* Upstream Keys Tab */}
       <div id="tab-upstream" class="card">
+        <div id="batch-bar" class="batch-bar hidden">
+          <span id="batch-count">已选 0 项</span>
+          <button class="btn-sm" onclick="batchToggle(false)">启用</button>
+          <button class="btn-sm" onclick="batchToggle(true)">禁用</button>
+          <button class="btn-sm btn-danger" onclick="batchDelete()" style="color:var(--danger)">批量删除</button>
+          <button class="btn-sm" onclick="clearSelection()">取消选择</button>
+        </div>
         <table>
-          <thead><tr><th>Key</th><th style="width:90px">余额</th><th style="width:100px"></th></tr></thead>
+          <thead><tr><th style="width:30px"><input type="checkbox" id="select-all" onchange="toggleAll(this)" /></th><th>Key</th><th style="width:64px">状态</th><th style="width:84px">余额</th><th style="width:140px"></th></tr></thead>
           <tbody id="upstream-tbody">
             {upstreamKeys.length === 0
-              ? <tr><td colSpan={3} class="empty">暂无上游 Key</td></tr>
+              ? <tr><td colSpan={5} class="empty">暂无上游 Key</td></tr>
               : upstreamKeys.map((k) => (
                   <tr id={`upstream-row-${k.id}`}>
+                    <td><input type="checkbox" class="key-checkbox" value={k.id} onchange="updateBatchBar()" /></td>
                     <td><code>{k.mask}</code></td>
+                    <td>
+                      <span class={`badge ${k.disabled ? 'badge-off' : 'badge-on'}`}>
+                        {k.disabled ? '禁用' : '启用'}
+                      </span>
+                    </td>
                     <td style="color:var(--muted)" class={`balance-${k.id}`}>{k.balance != null ? `¥${k.balance.toFixed(2)}` : '—'}</td>
                     <td>
-                      <div class="row">
-                        <button class="btn-sm" onclick={`refreshKeyBalance('${k.id}')`} title="刷新余额">↻</button>
+                      <div class="row" style="gap:4px">
+                        <button class="btn-sm" onclick={`refreshKeyBalance('${k.id}', this)`} title="刷新余额">↻</button>
+                        <button class="btn-sm" hx-put={`/admin/api/keys/${k.id}/toggle`} hx-swap="none">{k.disabled ? '启用' : '禁用'}</button>
                         <button class="btn-danger" hx-delete={`/admin/api/keys/${k.id}`} hx-confirm="确定删除此 Key？">删除</button>
                       </div>
                     </td>
@@ -104,7 +123,7 @@ export const AdminPage: FC<{
           <button onclick="toggleBatchImport()">批量导入</button>
           <button onclick="refreshAllBalances()">刷新全部余额</button>
         </div>
-        <div id="batch-import" class="mt" style="display:none;">
+        <div id="batch-import" style="display:none;" class="mt">
           <textarea id="batch-keys" placeholder={`每行一个 Key\nsk-key1\nsk-key2\nsk-key3`} rows={5}></textarea>
           <div class="row gap" style="margin-top:8px;">
             <button class="btn-primary" onclick="batchImport()">导入</button>
@@ -157,10 +176,25 @@ export const AdminPage: FC<{
         <div id="password-msg" class="msg" style="margin-top:8px;"></div>
       </div>
 
+      {/* Key Created Modal */}
+      <div id="key-modal" class="modal-overlay hidden">
+        <div class="modal">
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Key 已创建</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">请立即复制，关闭后不再显示</div>
+          <div class="row">
+            <code id="key-modal-value" style="flex:1;padding:10px 14px;font-size:13px;word-break:break-all;user-select:all;"></code>
+            <button class="btn-primary btn-sm" onclick="copyKey()" style="flex-shrink:0;">复制</button>
+          </div>
+          <div style="margin-top:16px;text-align:right;">
+            <button onclick="closeKeyModal()">关闭</button>
+          </div>
+        </div>
+      </div>
+
       <script src="https://unpkg.com/htmx.org@1.9.10" />
       <script dangerouslySetInnerHTML={{ __html: `
         function switchTab(name) {
-          document.querySelectorAll('.tab').forEach((t, i) => {
+          document.querySelectorAll('.tab').forEach(t => {
             t.classList.toggle('active', t.textContent.trim().startsWith(name === 'upstream' ? '上游' : name === 'user' ? '用户' : '设置'))
           })
           document.getElementById('tab-upstream').classList.toggle('hidden', name !== 'upstream')
@@ -177,6 +211,47 @@ export const AdminPage: FC<{
           if (res.status === 401) { location.href = '/admin/login'; return }
           return res.json()
         }
+
+        // --- Checkbox / Batch ---
+
+        function getCheckedIds() {
+          return [...document.querySelectorAll('.key-checkbox:checked')].map(cb => cb.value)
+        }
+
+        function updateBatchBar() {
+          const ids = getCheckedIds()
+          document.getElementById('batch-count').textContent = '已选 ' + ids.length + ' 项'
+          document.getElementById('batch-bar').classList.toggle('hidden', ids.length === 0)
+          document.getElementById('select-all').indeterminate = ids.length > 0 && ids.length < document.querySelectorAll('.key-checkbox').length
+        }
+
+        function toggleAll(el) {
+          document.querySelectorAll('.key-checkbox').forEach(cb => cb.checked = el.checked)
+          updateBatchBar()
+        }
+
+        function clearSelection() {
+          document.querySelectorAll('.key-checkbox').forEach(cb => cb.checked = false)
+          document.getElementById('select-all').checked = false
+          updateBatchBar()
+        }
+
+        async function batchToggle(disabled) {
+          const ids = getCheckedIds()
+          if (!ids.length) return
+          await api('POST', '/keys/batch-toggle', { ids, disabled })
+          location.reload()
+        }
+
+        async function batchDelete() {
+          const ids = getCheckedIds()
+          if (!ids.length) return
+          if (!confirm('确定删除选中的 ' + ids.length + ' 个 Key？')) return
+          await api('POST', '/keys/batch-delete', { ids })
+          location.reload()
+        }
+
+        // --- Single key actions ---
 
         async function addUpstreamKey() {
           const input = document.getElementById('new-upstream-key')
@@ -200,13 +275,13 @@ export const AdminPage: FC<{
           setTimeout(() => location.reload(), 800)
         }
 
-        async function refreshKeyBalance(id) {
-          const btn = event.target.closest('button')
+        async function refreshKeyBalance(id, btn) {
           btn.textContent = '...'
           const result = await api('POST', '/keys/' + id + '/refresh-balance')
           btn.textContent = '↻'
           if (result && result.balance != null) {
-            document.querySelector('.balance-' + id).textContent = '¥' + result.balance.toFixed(2)
+            const el = document.querySelector('.balance-' + id)
+            if (el) el.textContent = '¥' + result.balance.toFixed(2)
           }
         }
 
@@ -215,6 +290,8 @@ export const AdminPage: FC<{
           location.reload()
         }
 
+        // --- User keys ---
+
         async function createUserKey() {
           const input = document.getElementById('new-user-key')
           const prefix = input.value.trim()
@@ -222,10 +299,27 @@ export const AdminPage: FC<{
           const key = prefix + crypto.randomUUID().replace(/-/g, '').slice(0, 16)
           const result = await api('POST', '/user-keys', { key })
           if (result.key) {
-            alert('Key 已创建（仅显示一次）:\\n\\n' + result.key)
+            document.getElementById('key-modal-value').textContent = result.key
+            document.getElementById('key-modal').classList.remove('hidden')
+          } else {
+            location.reload()
           }
+        }
+
+        function copyKey() {
+          const val = document.getElementById('key-modal-value').textContent
+          navigator.clipboard.writeText(val).then(() => {
+            const btn = document.querySelector('#key-modal .btn-primary')
+            if (btn) { btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1500) }
+          })
+        }
+
+        function closeKeyModal() {
+          document.getElementById('key-modal').classList.add('hidden')
           location.reload()
         }
+
+        // --- Password ---
 
         async function changePassword() {
           const oldPw = document.getElementById('old-password').value
@@ -242,7 +336,12 @@ export const AdminPage: FC<{
         }
 
         document.body.addEventListener('htmx:afterRequest', (e) => {
-          if (e.detail.requestConfig.method !== 'get') location.reload()
+          if (e.detail.requestConfig.method === 'get') return
+          if (e.detail.requestConfig.path.startsWith('/admin/api/keys') && e.detail.requestConfig.method === 'put') {
+            location.reload()
+          } else if (e.detail.requestConfig.method !== 'get') {
+            location.reload()
+          }
         })
       ` }} />
     </body>

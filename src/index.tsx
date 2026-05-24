@@ -165,6 +165,50 @@ adminApi.post('/keys/refresh-balance', async (c) => {
   return c.json(Object.fromEntries(results))
 })
 
+adminApi.post('/keys/batch-toggle', async (c) => {
+  const { store } = getServices(c)
+  const { ids, disabled } = await c.req.json<{ ids: string[]; disabled: boolean }>()
+  if (!ids || !Array.isArray(ids)) return c.json({ error: 'ids array required' }, 400)
+
+  let count = 0
+  for (const id of ids) {
+    const keyData = await store.getUpstreamKey(id)
+    if (keyData) {
+      keyData.disabled = disabled
+      await store.setUpstreamKey(id, keyData)
+      count++
+    }
+  }
+  return c.json({ ok: true, count })
+})
+
+adminApi.post('/keys/batch-delete', async (c) => {
+  const { store } = getServices(c)
+  const { ids } = await c.req.json<{ ids: string[] }>()
+  if (!ids || !Array.isArray(ids)) return c.json({ error: 'ids array required' }, 400)
+
+  const allIds = await store.getUpstreamKeyIds()
+  const toDelete = new Set(ids)
+  const remaining = allIds.filter((id) => !toDelete.has(id))
+
+  for (const id of ids) {
+    await store.deleteUpstreamKey(id)
+  }
+  await store.setUpstreamKeyIds(remaining)
+
+  return c.json({ ok: true, deleted: ids.length })
+})
+
+adminApi.put('/keys/:id/toggle', async (c) => {
+  const { store } = getServices(c)
+  const { id } = c.req.param()
+  const keyData = await store.getUpstreamKey(id)
+  if (!keyData) return c.json({ error: 'Key not found' }, 404)
+  keyData.disabled = !keyData.disabled
+  await store.setUpstreamKey(id, keyData)
+  return c.json({ id, disabled: keyData.disabled })
+})
+
 adminApi.post('/keys/:id/refresh-balance', async (c) => {
   const { balanceService } = getServices(c)
   const { id } = c.req.param()

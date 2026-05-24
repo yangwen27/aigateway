@@ -9,6 +9,12 @@ function fnv1a(str: string): number {
   return hash >>> 0
 }
 
+function isKeyUsable(data: { balance: number | null; disabled?: boolean }): boolean {
+  if (data.disabled) return false
+  if (data.balance !== null && data.balance <= 0) return false
+  return true
+}
+
 export class KeyPool {
   constructor(
     private store: KVStore,
@@ -20,12 +26,18 @@ export class KeyPool {
     if (ids.length === 0) return null
 
     const hash = fnv1a(userKey + this.salt)
-    const idx = hash % ids.length
-    const id = ids[idx]
+    const startIdx = hash % ids.length
 
-    const keyData = await this.store.getUpstreamKey(id)
-    if (!keyData) return null
+    // Walk the ring to find a usable key
+    for (let i = 0; i < ids.length; i++) {
+      const idx = (startIdx + i) % ids.length
+      const id = ids[idx]
+      const keyData = await this.store.getUpstreamKey(id)
+      if (keyData && isKeyUsable(keyData)) {
+        return { id, fullKey: keyData.fullKey }
+      }
+    }
 
-    return { id, fullKey: keyData.fullKey }
+    return null
   }
 }
