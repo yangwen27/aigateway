@@ -110,6 +110,15 @@ adminApi.post('/keys', async (c) => {
   const { key } = await c.req.json<{ key: string }>()
   if (!key) return c.json({ error: 'Key 不能为空' }, 400)
 
+  // Check duplicate
+  const existingIds = await store.getUpstreamKeyIds()
+  for (const eid of existingIds) {
+    const ek = await store.getUpstreamKey(eid)
+    if (ek && ek.fullKey === key) {
+      return c.json({ error: 'Key 已存在', duplicate: eid }, 409)
+    }
+  }
+
   const id = crypto.randomUUID().slice(0, 8)
   await store.setUpstreamKey(id, {
     fullKey: key,
@@ -118,9 +127,8 @@ adminApi.post('/keys', async (c) => {
     balanceUpdated: 0,
   })
 
-  const ids = await store.getUpstreamKeyIds()
-  ids.push(id)
-  await store.setUpstreamKeyIds(ids)
+  existingIds.push(id)
+  await store.setUpstreamKeyIds(existingIds)
 
   return c.json({ id, mask: maskKey(key) }, 201)
 })
@@ -133,11 +141,22 @@ adminApi.post('/keys/batch', async (c) => {
   }
 
   const ids = await store.getUpstreamKeyIds()
+
+  // Load existing full keys for dedup
+  const existingKeys = new Set<string>()
+  for (const eid of ids) {
+    const ek = await store.getUpstreamKey(eid)
+    if (ek) existingKeys.add(ek.fullKey)
+  }
+
   const results: { id: string; mask: string; key: string }[] = []
+  let skipped = 0
 
   for (const key of keys) {
     const trimmed = key.trim()
     if (!trimmed) continue
+    if (existingKeys.has(trimmed)) { skipped++; continue }
+
     const id = crypto.randomUUID().slice(0, 8)
     await store.setUpstreamKey(id, {
       fullKey: trimmed,
@@ -146,12 +165,13 @@ adminApi.post('/keys/batch', async (c) => {
       balanceUpdated: 0,
     })
     ids.push(id)
+    existingKeys.add(trimmed)
     results.push({ id, mask: maskKey(trimmed), key: trimmed })
   }
 
   await store.setUpstreamKeyIds(ids)
 
-  return c.json({ imported: results.length, results }, 201)
+  return c.json({ imported: results.length, skipped, results }, 201)
 })
 
 adminApi.delete('/keys/:id', async (c) => {
