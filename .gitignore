@@ -1,2 +1,6 @@
-
+node_modules/
+.wrangler/
+config/
+dist/
 .worktrees/
+*.log
