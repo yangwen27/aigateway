@@ -54,23 +54,30 @@ export class AdminAuth {
     return c.json({ ok: true, firstLogin: !storedHash })
   }
 
+  async verifyToken(c: Context): Promise<boolean> {
+    const token = getCookie(c, 'admin_token')
+    if (!token) return false
+    try {
+      const payload = await verify(token, this.jwtSecret, 'HS256')
+      c.set('jwtPayload', payload)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   async middleware(c: Context, next: Next): Promise<void> {
     const token = getCookie(c, 'admin_token')
     if (!token) {
-      c.status(401)
-      c.header('Content-Type', 'application/json')
-      c.res = new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+      c.res = c.json({ error: 'Unauthorized' }, 401)
       return
     }
-
     try {
       const payload = await verify(token, this.jwtSecret, 'HS256')
       c.set('jwtPayload', payload)
       await next()
     } catch {
-      c.status(401)
-      c.header('Content-Type', 'application/json')
-      c.res = new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 })
+      c.res = c.json({ error: 'Invalid token' }, 401)
       return
     }
   }

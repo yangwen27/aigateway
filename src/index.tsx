@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { getCookie } from 'hono/cookie'
+
 import { KVStore } from './services/kv-store'
 import { KeyPool } from './services/key-pool'
 import { BalanceService } from './services/balance'
@@ -39,14 +39,8 @@ app.get('/admin/login', (c) => {
 
 app.get('/admin', async (c) => {
   const { store, auth } = getServices(c)
-
-  try {
-    const token = getCookie(c, 'admin_token')
-    if (!token) return c.redirect('/admin/login')
-    await auth.middleware(c, async () => {})
-  } catch {
-    return c.redirect('/admin/login')
-  }
+  const ok = await auth.verifyToken(c)
+  if (!ok) return c.redirect('/admin/login')
 
   const upstreamIds = await store.getUpstreamKeyIds()
   const upstreamKeys = await Promise.all(
