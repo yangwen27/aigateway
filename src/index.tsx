@@ -298,9 +298,15 @@ adminApi.put('/password', async (c) => {
 
 app.route('/admin/api', adminApi)
 
-// --- Proxy: /v1/* ---
+// Root redirect
+app.get('/', (c) => c.redirect('/admin'))
 
-app.all('/v1/*', async (c) => {
+// --- Proxy: catch-all for non-admin paths ---
+
+app.all('*', async (c) => {
+  // Skip admin routes
+  if (c.req.path.startsWith('/admin')) return c.notFound()
+
   const { store, keyPool } = getServices(c)
 
   const authHeader = c.req.header('Authorization')
@@ -387,9 +393,5 @@ app.all('/v1/*', async (c) => {
     headers: proxyRes!.headers,
   })
 })
-
-// --- Root redirect ---
-
-app.get('/', (c) => c.redirect('/admin'))
 
 export default app
