@@ -100,7 +100,6 @@ export const AdminPage: FC<{
           <button class="btn-sm" onclick="batchToggle(false)">启用</button>
           <button class="btn-sm" onclick="batchToggle(true)">禁用</button>
           <button class="btn-sm btn-danger" onclick="batchDelete()" style="color:var(--danger)">批量删除</button>
-          <button class="btn-sm btn-danger" onclick="cleanupZeroBalance()" style="color:var(--danger)">清理零余额</button>
           <button class="btn-sm" onclick="clearSelection()">取消选择</button>
         </div>
         <table>
@@ -135,6 +134,7 @@ export const AdminPage: FC<{
           <button class="btn-primary" onclick="addUpstreamKey()">添加</button>
           <button onclick="toggleBatchImport()">批量导入</button>
           <button onclick="refreshAllBalances()">刷新全部余额</button>
+          <button onclick="cleanupZeroBalance()" style="color:var(--danger)">清理零余额</button>
         </div>
         <div id="batch-import" style="display:none;" class="mt">
           <textarea id="batch-keys" placeholder={`每行一个 Key\nsk-key1\nsk-key2\nsk-key3`} rows={5}></textarea>
