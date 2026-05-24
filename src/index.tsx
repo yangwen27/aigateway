@@ -329,21 +329,62 @@ app.all('/v1/*', async (c) => {
     return c.json({ error: 'No upstream keys configured' }, 503)
   }
 
-  const url = `${c.env.DEEPSEEK_BASE_URL}${c.req.path}`
-  const headers = new Headers(c.req.raw.headers)
-  headers.set('Authorization', `Bearer ${upstream.fullKey}`)
-  headers.delete('Host')
+  let currentUpstream: { id: string; fullKey: string } | null = upstream
+  let proxyRes: Response | null = null
 
-  const proxyRes = await fetch(url, {
-    method: c.req.method,
-    headers,
-    body: c.req.raw.body,
-  })
+  while (currentUpstream) {
+    const fetchUrl = `${c.env.DEEPSEEK_BASE_URL}${c.req.path}`
+    const fetchHeaders = new Headers(c.req.raw.headers)
+    fetchHeaders.set('Authorization', `Bearer ${currentUpstream.fullKey}`)
+    fetchHeaders.delete('Host')
 
-  return new Response(proxyRes.body, {
-    status: proxyRes.status,
-    statusText: proxyRes.statusText,
-    headers: proxyRes.headers,
+    proxyRes = await fetch(fetchUrl, {
+      method: c.req.method,
+      headers: fetchHeaders,
+      body: c.req.raw.body,
+    })
+
+    // 400: client error, don't retry
+    if (proxyRes.status === 400) {
+      return c.json({
+        error: {
+          message: '请求格式错误，请检查请求体格式',
+          type: 'bad_request',
+          code: 'invalid_request_error',
+        },
+      }, 400)
+    }
+
+    // 401/402: bad key, delete and retry
+    if (proxyRes.status === 401 || proxyRes.status === 402) {
+      const ids = await store.getUpstreamKeyIds()
+      await store.setUpstreamKeyIds(ids.filter((i) => i !== currentUpstream!.id))
+      await store.deleteUpstreamKey(currentUpstream.id)
+
+      // Try next key
+      const nextKey = await keyPool.getUpstreamKey(userKeyValue)
+      currentUpstream = nextKey
+      continue
+    }
+
+    // Success or other errors: return as-is
+    break
+  }
+
+  if (!currentUpstream) {
+    return c.json({
+      error: {
+        message: '所有上游 Key 已失效，请添加新的 Key',
+        type: 'no_available_keys',
+        code: 'all_keys_exhausted',
+      },
+    }, 503)
+  }
+
+  return new Response(proxyRes!.body, {
+    status: proxyRes!.status,
+    statusText: proxyRes!.statusText,
+    headers: proxyRes!.headers,
   })
 })
 
