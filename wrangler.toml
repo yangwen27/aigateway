@@ -5,11 +5,11 @@ minify = true
 
 [[kv_namespaces]]
 binding = "AIGATEWAY"
-id = "your-kv-id"
-preview_id = "your-preview-kv-id"
+id = "0f61dd04585a456bae5b1c74b297b674"
+preview_id = "17a7eb8b1c814b50922f20c29f77a16b"
 
 [vars]
 ADMIN_DEFAULT_PASSWORD = "admin123"
-JWT_SECRET = "change-me-in-production-use-random-string"
-SALT = "gateway-salt-2026"
+JWT_SECRET = "417863c8663a2e89fad7e4ee96cbc50df0a3a91a69f13de2056435966512a442"
+SALT = "d4e8f1a9b3c7e2f601a5d8c3b9e4f7a2"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
