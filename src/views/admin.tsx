@@ -119,7 +119,7 @@ export const AdminPage: FC<{
       </div>
 
       <script src="https://unpkg.com/htmx.org@1.9.10" />
-      <script>{`
+      <script dangerouslySetInnerHTML={{ __html: `
         async function api(method, path, body) {
           const res = await fetch('/admin/api' + path, {
             method,
@@ -171,7 +171,7 @@ export const AdminPage: FC<{
         document.body.addEventListener('htmx:afterRequest', (e) => {
           if (e.detail.requestConfig.method !== 'get') location.reload()
         })
-      `}</script>
+      ` }} />
     </body>
   </html>
 )
@@ -202,7 +202,7 @@ export const LoginPage: FC<{ error?: string }> = ({ error }) => (
           <input type="password" name="password" placeholder="Admin password" autofocus />
           <button type="submit">Login</button>
         </form>
-        <script>{`
+        <script dangerouslySetInnerHTML={{ __html: `
           document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault()
             const password = e.target.password.value
@@ -222,7 +222,7 @@ export const LoginPage: FC<{ error?: string }> = ({ error }) => (
               e.target.insertBefore(div, e.target.firstChild)
             }
           })
-        `}</script>
+        ` }} />
       </div>
     </body>
   </html>
