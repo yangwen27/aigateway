@@ -7,119 +7,167 @@ interface KeyInfo {
   enabled?: boolean
 }
 
+const baseStyle = `
+  :root { --bg: #fafafa; --card: #fff; --border: #e5e5e5; --text: #1a1a1a; --muted: #888; --accent: #1a1a1a; --danger: #e00; --radius: 8px; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111; --card: #1c1c1c; --border: #2a2a2a; --text: #e4e4e4; --muted: #777; --accent: #f0f0f0; --danger: #f44; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; max-width: 780px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { font-weight: 500; color: var(--muted); font-size: 11px; letter-spacing: 0.4px; }
+  tr:last-child td { border-bottom: none; }
+  code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; background: var(--bg); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+  button, .btn { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--border); border-radius: 6px; padding: 7px 16px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--card); color: var(--text); transition: all .15s; white-space: nowrap; }
+  button:hover { background: var(--bg); border-color: var(--muted); }
+  .btn-primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.85; background: var(--accent); }
+  .btn-danger { color: var(--danger); border-color: transparent; background: transparent; padding: 7px 8px; font-size: 12px; }
+  .btn-danger:hover { background: #fee; }
+  @media (prefers-color-scheme: dark) { .btn-danger:hover { background: #2a1010; } }
+  .btn-sm { padding: 4px 8px; font-size: 12px; }
+  input, textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; font-family: inherit; outline: none; transition: border-color .15s; }
+  input:focus, textarea:focus { border-color: var(--muted); }
+  textarea { resize: vertical; width: 100%; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .gap { gap: 12px; }
+  .mt { margin-top: 16px; }
+  .badge { font-size: 11px; font-weight: 500; padding: 2px 10px; border-radius: 10px; }
+  .badge-on { background: #e6f4ea; color: #137333; }
+  .badge-off { background: #fce8e6; color: #c5221f; }
+  @media (prefers-color-scheme: dark) {
+    .badge-on { background: #0d2b14; color: #4ade80; }
+    .badge-off { background: #2b0d0d; color: #f87171; }
+  }
+  .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
+  .msg { font-size: 13px; color: var(--muted); }
+  .hidden { display: none; }
+  .refresh-btn { cursor: pointer; color: var(--muted); font-size: 13px; padding: 2px 6px; border-radius: 4px; border: none; background: none; }
+  .refresh-btn:hover { color: var(--text); background: var(--border); }
+`
+
 export const AdminPage: FC<{
   upstreamKeys: KeyInfo[]
   userKeys: KeyInfo[]
 }> = ({ upstreamKeys, userKeys }) => (
   <html>
     <head>
-      <title>DeepSeek Gateway - Admin</title>
+      <title>Gateway</title>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; max-width: 960px; margin: 0 auto; padding: 24px; }
-        h1 { font-size: 24px; margin-bottom: 24px; }
-        h2 { font-size: 18px; margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 1px solid #334155; }
-        .card { background: #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #334155; }
-        th { color: #94a3b8; font-weight: 500; font-size: 13px; text-transform: uppercase; }
-        button { border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; font-weight: 500; }
-        .btn-primary { background: #3b82f6; color: #fff; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-danger { background: #ef4444; color: #fff; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-sm { padding: 4px 10px; font-size: 12px; }
-        input[type="text"], input[type="password"] { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; width: 100%; max-width: 400px; font-size: 14px; }
-        input:focus { outline: none; border-color: #3b82f6; }
-        .flex { display: flex; gap: 8px; align-items: center; }
-        .mb-4 { margin-bottom: 16px; }
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
-        .badge-on { background: #166534; color: #4ade80; }
-        .badge-off { background: #991b1b; color: #f87171; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-        .status { color: #94a3b8; font-size: 13px; }
-      `}</style>
+      <style>{baseStyle}</style>
     </head>
     <body>
       <div class="topbar">
-        <h1>DeepSeek API Gateway</h1>
-        <span class="status">Admin</span>
+        <h1>Gateway</h1>
       </div>
 
-      <div class="card">
-        <h2>Upstream Keys (DeepSeek)</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('upstream')">上游 Key</button>
+        <button class="tab" onclick="switchTab('user')">用户 Key</button>
+        <button class="tab" onclick="switchTab('settings')">设置</button>
+      </div>
+
+      {/* Upstream Keys Tab */}
+      <div id="tab-upstream" class="card">
         <table>
-          <thead>
-            <tr><th>Key</th><th>Balance</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {upstreamKeys.map((k) => (
-              <tr>
-                <td><code>{k.mask}</code></td>
-                <td>{k.balance != null ? `¥${k.balance.toFixed(2)}` : '—'}</td>
-                <td>
-                  <button class="btn-danger btn-sm" hx-delete={`/admin/api/keys/${k.id}`} hx-confirm="Delete this key?">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+          <thead><tr><th>Key</th><th style="width:90px">余额</th><th style="width:100px"></th></tr></thead>
+          <tbody id="upstream-tbody">
+            {upstreamKeys.length === 0
+              ? <tr><td colSpan={3} class="empty">暂无上游 Key</td></tr>
+              : upstreamKeys.map((k) => (
+                  <tr id={`upstream-row-${k.id}`}>
+                    <td><code>{k.mask}</code></td>
+                    <td style="color:var(--muted)" class={`balance-${k.id}`}>{k.balance != null ? `¥${k.balance.toFixed(2)}` : '—'}</td>
+                    <td>
+                      <div class="row">
+                        <button class="btn-sm" onclick={`refreshKeyBalance('${k.id}')`} title="刷新余额">↻</button>
+                        <button class="btn-danger" hx-delete={`/admin/api/keys/${k.id}`} hx-confirm="确定删除此 Key？">删除</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+            }
           </tbody>
         </table>
-        <div class="flex mb-4" style="margin-top: 12px;">
-          <input type="text" id="new-upstream-key" placeholder="sk-xxxxxxxxxxxxxxxx" />
-          <button class="btn-primary" onclick="addUpstreamKey()">Add Key</button>
-          <button class="btn-primary" onclick="refreshBalances()">Refresh Balances</button>
+        <div class="row gap mt">
+          <input type="text" id="new-upstream-key" placeholder="sk-..." style="width:260px" />
+          <button class="btn-primary" onclick="addUpstreamKey()">添加</button>
+          <button onclick="toggleBatchImport()">批量导入</button>
+          <button onclick="refreshAllBalances()">刷新全部余额</button>
+        </div>
+        <div id="batch-import" class="mt" style="display:none;">
+          <textarea id="batch-keys" placeholder={`每行一个 Key\nsk-key1\nsk-key2\nsk-key3`} rows={5}></textarea>
+          <div class="row gap" style="margin-top:8px;">
+            <button class="btn-primary" onclick="batchImport()">导入</button>
+            <span id="batch-result" class="msg"></span>
+          </div>
         </div>
       </div>
 
-      <div class="card">
-        <h2>User Keys</h2>
+      {/* User Keys Tab */}
+      <div id="tab-user" class="card hidden">
         <table>
-          <thead>
-            <tr><th>Key</th><th>Status</th><th>Actions</th></tr>
-          </thead>
+          <thead><tr><th>Key</th><th style="width:80px">状态</th><th style="width:100px"></th></tr></thead>
           <tbody>
-            {userKeys.map((k) => (
-              <tr>
-                <td><code>{k.mask}</code></td>
-                <td>
-                  <span class={`badge ${k.enabled ? 'badge-on' : 'badge-off'}`}>
-                    {k.enabled ? 'Enabled' : 'Disabled'}
-                  </span>
-                </td>
-                <td class="flex">
-                  <button class="btn-sm btn-primary" hx-put={`/admin/api/user-keys/${k.id}/toggle`} hx-swap="none">
-                    {k.enabled ? 'Disable' : 'Enable'}
-                  </button>
-                  <button class="btn-sm btn-danger" hx-delete={`/admin/api/user-keys/${k.id}`} hx-confirm="Delete this key?">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {userKeys.length === 0
+              ? <tr><td colSpan={3} class="empty">暂无用户 Key</td></tr>
+              : userKeys.map((k) => (
+                  <tr>
+                    <td><code>{k.mask}</code></td>
+                    <td>
+                      <span class={`badge ${k.enabled ? 'badge-on' : 'badge-off'}`}>
+                        {k.enabled ? '启用' : '禁用'}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="row">
+                        <button class="btn-sm" hx-put={`/admin/api/user-keys/${k.id}/toggle`} hx-swap="none">
+                          {k.enabled ? '禁用' : '启用'}
+                        </button>
+                        <button class="btn-danger" hx-delete={`/admin/api/user-keys/${k.id}`} hx-confirm="确定删除此 Key？">删除</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+            }
           </tbody>
         </table>
-        <div class="flex" style="margin-top: 12px;">
-          <input type="text" id="new-user-key" placeholder="Key prefix (e.g., ak-)" />
-          <button class="btn-primary" onclick="createUserKey()">Create User Key</button>
+        <div class="row gap mt">
+          <input type="text" id="new-user-key" placeholder="Key 前缀，如 ak-" style="width:200px" />
+          <button class="btn-primary" onclick="createUserKey()">创建</button>
         </div>
       </div>
 
-      <div class="card">
-        <h2>Change Password</h2>
-        <div class="flex mb-4">
-          <input type="password" id="old-password" placeholder="Old password" />
-          <input type="password" id="new-password" placeholder="New password" />
-          <button class="btn-primary" onclick="changePassword()">Change</button>
+      {/* Settings Tab */}
+      <div id="tab-settings" class="card hidden">
+        <div class="row gap">
+          <input type="password" id="old-password" placeholder="当前密码" style="width:180px" />
+          <input type="password" id="new-password" placeholder="新密码" style="width:180px" />
+          <button onclick="changePassword()">修改密码</button>
         </div>
-        <div id="password-msg"></div>
+        <div id="password-msg" class="msg" style="margin-top:8px;"></div>
       </div>
 
       <script src="https://unpkg.com/htmx.org@1.9.10" />
       <script dangerouslySetInnerHTML={{ __html: `
+        function switchTab(name) {
+          document.querySelectorAll('.tab').forEach((t, i) => {
+            t.classList.toggle('active', t.textContent.trim().startsWith(name === 'upstream' ? '上游' : name === 'user' ? '用户' : '设置'))
+          })
+          document.getElementById('tab-upstream').classList.toggle('hidden', name !== 'upstream')
+          document.getElementById('tab-user').classList.toggle('hidden', name !== 'user')
+          document.getElementById('tab-settings').classList.toggle('hidden', name !== 'settings')
+        }
+
         async function api(method, path, body) {
           const res = await fetch('/admin/api' + path, {
             method,
@@ -133,12 +181,36 @@ export const AdminPage: FC<{
         async function addUpstreamKey() {
           const input = document.getElementById('new-upstream-key')
           const key = input.value.trim()
-          if (!key) return alert('Enter a key')
+          if (!key) return
           await api('POST', '/keys', { key })
           location.reload()
         }
 
-        async function refreshBalances() {
+        function toggleBatchImport() {
+          const el = document.getElementById('batch-import')
+          el.style.display = el.style.display === 'none' ? 'block' : 'none'
+        }
+
+        async function batchImport() {
+          const textarea = document.getElementById('batch-keys')
+          const keys = textarea.value.split(/[\\n,]+/).map(k => k.trim()).filter(k => k)
+          if (!keys.length) return
+          const result = await api('POST', '/keys/batch', { keys })
+          document.getElementById('batch-result').textContent = '已导入 ' + result.imported + ' 个 key'
+          setTimeout(() => location.reload(), 800)
+        }
+
+        async function refreshKeyBalance(id) {
+          const btn = event.target.closest('button')
+          btn.textContent = '...'
+          const result = await api('POST', '/keys/' + id + '/refresh-balance')
+          btn.textContent = '↻'
+          if (result && result.balance != null) {
+            document.querySelector('.balance-' + id).textContent = '¥' + result.balance.toFixed(2)
+          }
+        }
+
+        async function refreshAllBalances() {
           await api('POST', '/keys/refresh-balance')
           location.reload()
         }
@@ -146,11 +218,11 @@ export const AdminPage: FC<{
         async function createUserKey() {
           const input = document.getElementById('new-user-key')
           const prefix = input.value.trim()
-          if (!prefix) return alert('Enter a prefix')
+          if (!prefix) return
           const key = prefix + crypto.randomUUID().replace(/-/g, '').slice(0, 16)
           const result = await api('POST', '/user-keys', { key })
           if (result.key) {
-            alert('Created key (copy now — shown only once):\\n\\n' + result.key)
+            alert('Key 已创建（仅显示一次）:\\n\\n' + result.key)
           }
           location.reload()
         }
@@ -158,13 +230,14 @@ export const AdminPage: FC<{
         async function changePassword() {
           const oldPw = document.getElementById('old-password').value
           const newPw = document.getElementById('new-password').value
+          if (!oldPw || !newPw) return
           const result = await api('PUT', '/password', { oldPassword: oldPw, newPassword: newPw })
           const msg = document.getElementById('password-msg')
           if (result.ok) {
-            msg.innerHTML = '<span style="color:#4ade80">Password changed. Redirecting...</span>'
-            setTimeout(() => location.href = '/admin/login', 1500)
+            msg.innerHTML = '密码已修改'
+            setTimeout(() => location.href = '/admin/login', 1200)
           } else {
-            msg.innerHTML = '<span style="color:#f87171">' + result.error + '</span>'
+            msg.innerHTML = result.error
           }
         }
 
@@ -179,28 +252,28 @@ export const AdminPage: FC<{
 export const LoginPage: FC<{ error?: string }> = ({ error }) => (
   <html>
     <head>
-      <title>DeepSeek Gateway - Login</title>
+      <title>Gateway</title>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .login-card { background: #1e293b; border-radius: 8px; padding: 32px; width: 360px; }
-        h1 { font-size: 20px; margin-bottom: 20px; text-align: center; }
-        input { background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 10px 14px; color: #e2e8f0; width: 100%; font-size: 14px; margin-bottom: 12px; }
-        input:focus { outline: none; border-color: #3b82f6; }
-        button { width: 100%; border: none; border-radius: 6px; padding: 10px; font-size: 14px; cursor: pointer; background: #3b82f6; color: #fff; font-weight: 500; }
-        button:hover { background: #2563eb; }
-        .error { color: #f87171; font-size: 13px; margin-bottom: 12px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif; background: #111; color: #e4e4e4; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .box { width: 340px; }
+        h1 { font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center; letter-spacing: -0.3px; }
+        input { background: #1c1c1c; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 16px; color: #e4e4e4; width: 100%; font-size: 14px; margin-bottom: 12px; outline: none; transition: border-color .15s; }
+        input:focus { border-color: #555; }
+        button { width: 100%; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; background: #f0f0f0; color: #111; transition: opacity .15s; }
+        button:hover { opacity: 0.85; }
+        .err { color: #f87171; font-size: 13px; margin-bottom: 12px; }
       `}</style>
     </head>
     <body>
-      <div class="login-card">
-        <h1>Gateway Admin</h1>
-        {error && <div class="error">{error}</div>}
+      <div class="box">
+        <h1>Gateway</h1>
+        {error && <div class="err">{error}</div>}
         <form method="post" action="/admin/api/login" id="login-form">
-          <input type="password" name="password" placeholder="Admin password" autofocus />
-          <button type="submit">Login</button>
+          <input type="password" name="password" placeholder="管理员密码" autofocus />
+          <button type="submit">登录</button>
         </form>
         <script dangerouslySetInnerHTML={{ __html: `
           document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -215,9 +288,9 @@ export const LoginPage: FC<{ error?: string }> = ({ error }) => (
               location.href = '/admin'
             } else {
               const data = await res.json()
-              document.querySelector('.error')?.remove()
+              document.querySelector('.err')?.remove()
               const div = document.createElement('div')
-              div.className = 'error'
+              div.className = 'err'
               div.textContent = data.error
               e.target.insertBefore(div, e.target.firstChild)
             }

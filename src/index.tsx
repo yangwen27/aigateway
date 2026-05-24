@@ -114,6 +114,35 @@ adminApi.post('/keys', async (c) => {
   return c.json({ id, mask: maskKey(key) }, 201)
 })
 
+adminApi.post('/keys/batch', async (c) => {
+  const { store } = getServices(c)
+  const { keys } = await c.req.json<{ keys: string[] }>()
+  if (!keys || !Array.isArray(keys) || keys.length === 0) {
+    return c.json({ error: 'Keys array is required' }, 400)
+  }
+
+  const ids = await store.getUpstreamKeyIds()
+  const results: { id: string; mask: string; key: string }[] = []
+
+  for (const key of keys) {
+    const trimmed = key.trim()
+    if (!trimmed) continue
+    const id = crypto.randomUUID().slice(0, 8)
+    await store.setUpstreamKey(id, {
+      fullKey: trimmed,
+      mask: maskKey(trimmed),
+      balance: null,
+      balanceUpdated: 0,
+    })
+    ids.push(id)
+    results.push({ id, mask: maskKey(trimmed), key: trimmed })
+  }
+
+  await store.setUpstreamKeyIds(ids)
+
+  return c.json({ imported: results.length, results }, 201)
+})
+
 adminApi.delete('/keys/:id', async (c) => {
   const { store } = getServices(c)
   const { id } = c.req.param()
@@ -134,6 +163,14 @@ adminApi.post('/keys/refresh-balance', async (c) => {
   const { balanceService } = getServices(c)
   const results = await balanceService.refreshAllBalances()
   return c.json(Object.fromEntries(results))
+})
+
+adminApi.post('/keys/:id/refresh-balance', async (c) => {
+  const { balanceService } = getServices(c)
+  const { id } = c.req.param()
+  const balance = await balanceService.refreshBalance(id)
+  if (balance === null) return c.json({ error: 'Failed to refresh' }, 500)
+  return c.json({ id, balance })
 })
 
 adminApi.get('/user-keys', async (c) => {
