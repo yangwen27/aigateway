@@ -1,0 +1,4 @@
+# 复制此文件为 .dev.vars 并填入真实值
+JWT_SECRET=change-me-to-a-random-32-byte-hex
+SALT=change-me-to-a-random-32-char-string
+ADMIN_DEFAULT_PASSWORD=your-default-password

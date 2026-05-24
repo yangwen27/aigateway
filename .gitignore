@@ -4,3 +4,7 @@ config/
 dist/
 .worktrees/
 *.log
+.dev.vars
+.claude/
+.playwright-mcp/
+admin-page.png
