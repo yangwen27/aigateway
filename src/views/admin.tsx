@@ -88,8 +88,8 @@ export const AdminPage: FC<{
       </div>
 
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('upstream')">上游 Key</button>
-        <button class="tab" onclick="switchTab('user')">用户 Key</button>
+        <button class="tab active" onclick="switchTab('upstream')">上游 Key ({upstreamKeys.length})</button>
+        <button class="tab" onclick="switchTab('user')">用户 Key ({userKeys.length})</button>
         <button class="tab" onclick="switchTab('settings')">设置</button>
       </div>
 
