@@ -100,6 +100,7 @@ export const AdminPage: FC<{
           <button class="btn-sm" onclick="batchToggle(false)">启用</button>
           <button class="btn-sm" onclick="batchToggle(true)">禁用</button>
           <button class="btn-sm btn-danger" onclick="batchDelete()" style="color:var(--danger)">批量删除</button>
+          <button class="btn-sm btn-danger" onclick="cleanupZeroBalance()" style="color:var(--danger)">清理零余额</button>
           <button class="btn-sm" onclick="clearSelection()">取消选择</button>
         </div>
         <table>
@@ -260,6 +261,13 @@ export const AdminPage: FC<{
           if (!ids.length) return
           if (!confirm('确定删除选中的 ' + ids.length + ' 个 Key？')) return
           await api('POST', '/keys/batch-delete', { ids })
+          location.reload()
+        }
+
+        async function cleanupZeroBalance() {
+          if (!confirm('确定删除所有余额 ≤ 0 的上游 Key？')) return
+          const result = await api('POST', '/keys/cleanup-zero-balance')
+          alert('已删除 ' + result.deleted + ' 个 Key')
           location.reload()
         }
 

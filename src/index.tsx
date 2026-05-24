@@ -230,6 +230,29 @@ adminApi.post('/keys/batch-delete', async (c) => {
   return c.json({ ok: true, deleted: ids.length })
 })
 
+adminApi.post('/keys/cleanup-zero-balance', async (c) => {
+  const { store } = getServices(c)
+  const ids = await store.getUpstreamKeyIds()
+  const toDelete: string[] = []
+
+  for (const id of ids) {
+    const data = await store.getUpstreamKey(id)
+    if (data && data.balance !== null && data.balance <= 0) {
+      toDelete.push(id)
+    }
+  }
+
+  for (const id of toDelete) {
+    await store.deleteUpstreamKey(id)
+  }
+
+  if (toDelete.length > 0) {
+    await store.setUpstreamKeyIds(ids.filter((id) => !toDelete.includes(id)))
+  }
+
+  return c.json({ ok: true, deleted: toDelete.length, ids: toDelete })
+})
+
 adminApi.put('/keys/:id/toggle', async (c) => {
   const { store } = getServices(c)
   const { id } = c.req.param()
