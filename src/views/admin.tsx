@@ -59,10 +59,22 @@ const baseStyle = `
   input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 `
 
+function sortUrl(field: string, current: string | undefined, order: string | undefined): string {
+  const next = current === field && order === 'asc' ? 'desc' : 'asc'
+  return `?sort=${field}&order=${next}`
+}
+
+function sortArrow(field: string, current: string | undefined, order: string | undefined): string {
+  if (current !== field) return ' ↕'
+  return order === 'asc' ? ' ↑' : ' ↓'
+}
+
 export const AdminPage: FC<{
   upstreamKeys: KeyInfo[]
   userKeys: KeyInfo[]
-}> = ({ upstreamKeys, userKeys }) => (
+  sort?: string
+  order?: string
+}> = ({ upstreamKeys, userKeys, sort, order }) => (
   <html>
     <head>
       <title>Gateway</title>
@@ -91,7 +103,7 @@ export const AdminPage: FC<{
           <button class="btn-sm" onclick="clearSelection()">取消选择</button>
         </div>
         <table>
-          <thead><tr><th style="width:30px"><input type="checkbox" id="select-all" onchange="toggleAll(this)" /></th><th>Key</th><th style="width:64px">状态</th><th style="width:84px">余额</th><th style="width:140px"></th></tr></thead>
+          <thead><tr><th style="width:30px"><input type="checkbox" id="select-all" onchange="toggleAll(this)" /></th><th>Key</th><th style="width:64px">状态</th><th style="width:90px"><a href={sortUrl('balance', sort, order)} style="color:inherit;text-decoration:none;cursor:pointer;">余额{sortArrow('balance', sort, order)}</a></th><th style="width:140px"></th></tr></thead>
           <tbody id="upstream-tbody">
             {upstreamKeys.length === 0
               ? <tr><td colSpan={5} class="empty">暂无上游 Key</td></tr>

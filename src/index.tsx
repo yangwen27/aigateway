@@ -46,9 +46,20 @@ app.get('/admin', async (c) => {
   const upstreamKeys = await Promise.all(
     upstreamIds.map(async (id) => {
       const data = await store.getUpstreamKey(id)
-      return { id, mask: data?.mask ?? id, balance: data?.balance }
+      return { id, mask: data?.mask ?? id, balance: data?.balance, disabled: data?.disabled }
     })
   )
+
+  // Sort
+  const sort = c.req.query('sort')
+  const order = c.req.query('order') || 'asc'
+  if (sort === 'balance') {
+    upstreamKeys.sort((a, b) => {
+      const va = a.balance ?? -Infinity
+      const vb = b.balance ?? -Infinity
+      return order === 'desc' ? vb - va : va - vb
+    })
+  }
 
   const userKeyIds = await store.getUserKeyIds()
   const userKeys = await Promise.all(
@@ -58,7 +69,7 @@ app.get('/admin', async (c) => {
     })
   )
 
-  return c.html(<AdminPage upstreamKeys={upstreamKeys} userKeys={userKeys} />)
+  return c.html(<AdminPage upstreamKeys={upstreamKeys} userKeys={userKeys} sort={sort} order={order} />)
 })
 
 // --- Admin API ---
