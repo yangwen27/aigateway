@@ -108,7 +108,7 @@ adminApi.get('/keys', async (c) => {
 adminApi.post('/keys', async (c) => {
   const { store } = getServices(c)
   const { key } = await c.req.json<{ key: string }>()
-  if (!key) return c.json({ error: 'Key is required' }, 400)
+  if (!key) return c.json({ error: 'Key 不能为空' }, 400)
 
   const id = crypto.randomUUID().slice(0, 8)
   await store.setUpstreamKey(id, {
@@ -161,7 +161,7 @@ adminApi.delete('/keys/:id', async (c) => {
   const filtered = ids.filter((i) => i !== id)
 
   if (filtered.length === ids.length) {
-    return c.json({ error: 'Key not found' }, 404)
+    return c.json({ error: 'Key 不存在' }, 404)
   }
 
   await store.setUpstreamKeyIds(filtered)
@@ -179,7 +179,7 @@ adminApi.post('/keys/refresh-balance', async (c) => {
 adminApi.post('/keys/batch-toggle', async (c) => {
   const { store } = getServices(c)
   const { ids, disabled } = await c.req.json<{ ids: string[]; disabled: boolean }>()
-  if (!ids || !Array.isArray(ids)) return c.json({ error: 'ids array required' }, 400)
+  if (!ids || !Array.isArray(ids)) return c.json({ error: '需要提供 ids 数组' }, 400)
 
   let count = 0
   for (const id of ids) {
@@ -196,7 +196,7 @@ adminApi.post('/keys/batch-toggle', async (c) => {
 adminApi.post('/keys/batch-delete', async (c) => {
   const { store } = getServices(c)
   const { ids } = await c.req.json<{ ids: string[] }>()
-  if (!ids || !Array.isArray(ids)) return c.json({ error: 'ids array required' }, 400)
+  if (!ids || !Array.isArray(ids)) return c.json({ error: '需要提供 ids 数组' }, 400)
 
   const allIds = await store.getUpstreamKeyIds()
   const toDelete = new Set(ids)
@@ -214,7 +214,7 @@ adminApi.put('/keys/:id/toggle', async (c) => {
   const { store } = getServices(c)
   const { id } = c.req.param()
   const keyData = await store.getUpstreamKey(id)
-  if (!keyData) return c.json({ error: 'Key not found' }, 404)
+  if (!keyData) return c.json({ error: 'Key 不存在' }, 404)
   keyData.disabled = !keyData.disabled
   await store.setUpstreamKey(id, keyData)
   return c.json({ id, disabled: keyData.disabled })
@@ -224,7 +224,7 @@ adminApi.post('/keys/:id/refresh-balance', async (c) => {
   const { balanceService } = getServices(c)
   const { id } = c.req.param()
   const balance = await balanceService.refreshBalance(id)
-  if (balance === null) return c.json({ error: 'Failed to refresh' }, 500)
+  if (balance === null) return c.json({ error: '刷新余额失败' }, 500)
   return c.json({ id, balance })
 })
 
@@ -247,7 +247,7 @@ adminApi.get('/user-keys', async (c) => {
 adminApi.post('/user-keys', async (c) => {
   const { store } = getServices(c)
   const { key } = await c.req.json<{ key: string }>()
-  if (!key) return c.json({ error: 'Key is required' }, 400)
+  if (!key) return c.json({ error: 'Key 不能为空' }, 400)
 
   const id = crypto.randomUUID().slice(0, 8)
   await store.setUserKey(id, {
@@ -270,7 +270,7 @@ adminApi.delete('/user-keys/:id', async (c) => {
   const filtered = ids.filter((i) => i !== id)
 
   if (filtered.length === ids.length) {
-    return c.json({ error: 'Key not found' }, 404)
+    return c.json({ error: 'Key 不存在' }, 404)
   }
 
   await store.setUserKeyIds(filtered)
@@ -283,7 +283,7 @@ adminApi.put('/user-keys/:id/toggle', async (c) => {
   const { store } = getServices(c)
   const { id } = c.req.param()
   const keyData = await store.getUserKey(id)
-  if (!keyData) return c.json({ error: 'Key not found' }, 404)
+  if (!keyData) return c.json({ error: 'Key 不存在' }, 404)
 
   keyData.enabled = !keyData.enabled
   await store.setUserKey(id, keyData)
@@ -311,7 +311,7 @@ app.all('*', async (c) => {
 
   const authHeader = c.req.header('Authorization')
   if (!authHeader?.startsWith('Bearer ')) {
-    return c.json({ error: 'Missing or invalid Authorization header' }, 401)
+    return c.json({ error: '缺少或无效的 Authorization header' }, 401)
   }
 
   const userKeyValue = authHeader.slice(7)
@@ -327,12 +327,12 @@ app.all('*', async (c) => {
   }
 
   if (!userKeyEnabled) {
-    return c.json({ error: 'Invalid or disabled API key' }, 403)
+    return c.json({ error: 'API key 无效或已禁用' }, 403)
   }
 
   const upstream = await keyPool.getUpstreamKey(userKeyValue)
   if (!upstream) {
-    return c.json({ error: 'No upstream keys configured' }, 503)
+    return c.json({ error: '没有可用的上游 Key' }, 503)
   }
 
   let currentUpstream: { id: string; fullKey: string } | null = upstream

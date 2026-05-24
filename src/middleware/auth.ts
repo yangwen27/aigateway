@@ -35,7 +35,7 @@ export class AdminAuth {
     }
 
     if (!valid) {
-      return c.json({ error: 'Invalid password' }, 401)
+      return c.json({ error: '密码错误' }, 401)
     }
 
     const token = await sign(
@@ -69,7 +69,7 @@ export class AdminAuth {
   async middleware(c: Context, next: Next): Promise<void> {
     const token = getCookie(c, 'admin_token')
     if (!token) {
-      c.res = c.json({ error: 'Unauthorized' }, 401)
+      c.res = c.json({ error: '未登录' }, 401)
       return
     }
     try {
@@ -77,7 +77,7 @@ export class AdminAuth {
       c.set('jwtPayload', payload)
       await next()
     } catch {
-      c.res = c.json({ error: 'Invalid token' }, 401)
+      c.res = c.json({ error: 'Token 无效或已过期' }, 401)
       return
     }
   }
@@ -88,7 +88,7 @@ export class AdminAuth {
     const oldHash = await hashPassword(oldPassword)
 
     if (storedHash && oldHash !== storedHash) {
-      return c.json({ error: 'Invalid old password' }, 400)
+      return c.json({ error: '当前密码错误' }, 400)
     }
 
     const newHash = await hashPassword(newPassword)
